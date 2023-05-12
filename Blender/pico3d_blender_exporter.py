@@ -70,98 +70,95 @@ class Pico3dExport(bpy.types.Operator):
 
         # The original script
         scene = context.scene
-        
-        
+
+
         export_single = context.scene.export_single_model
-        
-        
+
+
         #if there is no path yet, ask user to fill in path
         file_path = context.scene.file_path
-        
+
         if (file_path == ''):
             print('No file path specified, dumping output to console:\n')
-            
+
         file_output = ''
-        
+
         self.textures = []
-        
+
         self.texture_list = ''
-        
+
         # Either export a single model
         if export_single:
             
             meshname = context.scene.meshname
-            
+
             if meshname in bpy.data.meshes:
                 
                 modelname = context.scene.modelname
                 mesh = bpy.data.meshes[meshname]
-                
-                
-                
+
+
+
                 output = self.generate_vertices(context, mesh, modelname, 1000, False) + '\n'
-                
+
                 #output += self.generate_textures()
-                
-                
+
+
                 if (file_path == ''):
                     print(output)
                 else:
-                    f = open(file_path, "w")
-                    f.write(output)
-                    f.close()
-                
+                    with open(file_path, "w") as f:
+                        f.write(output)
             else:
                 print('Unable to find mesh using given name')
-        
-        #Otherwise proceed with a complete chunk export
+
         else:
             
             world_size_x = context.scene.world_size_x
             world_size_y = context.scene.world_size_y
-            
+
             chunk_output = 'const struct chunk_flash lod0_chunks[WORLD_SIZE_X][WORLD_SIZE_Y] = {\n'
-            
+
             #First do lod0
             max_triangles = context.scene.lod0_triangle_limit
-            
+
             chunk_output = self.export_chunks(context, 0, max_triangles)
-            
-            file_output += '#define WORLD_SIZE_X ' + str(world_size_x) + '\n#define WORLD_SIZE_Y ' + str(world_size_y) + '\n'
+
+            file_output += (
+                f'#define WORLD_SIZE_X {str(world_size_x)}'
+                + '\n#define WORLD_SIZE_Y '
+                + str(world_size_y)
+                + '\n'
+            )
             file_output += chunk_output + '\n'
             #print(triangle_output)
             #print(chunk_output)
-            
-            
+
+
             #reset values
             chunk_output = 'const struct chunk_flash lod1_chunks[WORLD_SIZE_X][WORLD_SIZE_Y] = {\n'
-            
-            
+
+
             #Then do lod1
             max_triangles = context.scene.lod1_triangle_limit
-            
-            
+
+
             chunk_output = self.export_chunks(context, 1, max_triangles) + '\n'
-            
+
             chunk_output += self.generate_textures() + '\n'
-            
-            
+
+
             chunk_output += self.generate_lights(context)
-            
+
             file_output += chunk_output
             #print(triangle_output)
             #print(chunk_output)
-            
+
             if (file_path == ''):
                 print(file_output)
             else:
-                f = open(file_path, "w")
-                f.write(file_output)
-                f.close()
-
-                
-            
-
+                with open(file_path, "w") as f:
+                    f.write(file_output)
         return {'FINISHED'}            # Lets Blender know the operator finished successfully.
 
 
